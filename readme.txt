@@ -4,7 +4,7 @@ Tags: woocommerce, gift card, store credit, gift voucher, gift certificate
 Requires at least: 6.5
 Tested up to: 7.0
 Requires PHP: 8.1
-Stable tag: 0.1.0
+Stable tag: 0.2.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -20,7 +20,8 @@ Sell gift cards as ordinary WooCommerce products. Flag any product as a gift car
 * A unique code is generated and emailed to the recipient on order completion.
 * Redeem-code field at checkout applies the balance as a discount.
 * Partial redemption — the remaining balance is kept for later use.
-* Customisable code prefix and recipient email subject/body.
+* Customisable code prefix, checkout discount label and recipient email subject/body.
+* Issued codes shown to the buyer on the order-confirmation page and in order emails.
 * WooCommerce HPOS (Custom Order Tables) and Cart/Checkout Blocks compatible.
 
 == Installation ==
@@ -49,6 +50,15 @@ The customer enters their code in the field at checkout. The remaining balance i
 1. Gift Cards – Store Credit for WooCommerce in action.
 
 == Changelog ==
+
+= 0.2.0 =
+* Recipient email subject and body set in **WooCommerce → Gift Cards** are now applied to the email the recipient receives (previously the stored values were ignored).
+* New setting: customise the checkout discount label shown when a code is applied (supports {code}).
+* New setting: show the issued gift-card codes to the buyer on the order-confirmation page and in their order emails (on by default).
+* Default email/label strings are now translatable.
+* Polished UI: redesigned settings page with inline help tooltips, click-to-insert email tokens and a live email preview.
+* Polished storefront: friendlier checkout redeem field and an issued-codes list with one-click copy.
+* Modern, themeable styling with dark-mode and reduced-motion support; no layout shift at checkout. Accessible (keyboard, ARIA, focus styles); assets ship as real files.
 
 = 0.1.0 =
 * Initial release.

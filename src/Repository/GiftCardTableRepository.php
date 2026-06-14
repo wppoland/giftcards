@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace GiftCards\Repository;
 
+use WPPoland\StorefrontKit\GiftCard\DuplicateGiftCardCodeException;
 use WPPoland\StorefrontKit\GiftCard\GiftCardRepository;
 
 defined('ABSPATH') || exit;
@@ -30,11 +31,26 @@ final class GiftCardTableRepository implements GiftCardRepository
         return $wpdb->prefix . 'giftcards';
     }
 
+    /**
+     * Persist a freshly issued gift card.
+     *
+     * The DB-level UNIQUE index on `code` (see {@see \GiftCards\Migrator}) is the
+     * authority on uniqueness: if a concurrent issue inserted the same code
+     * between the kit's pre-check and this insert, the insert is rejected and we
+     * translate that into {@see DuplicateGiftCardCodeException} so the kit engine
+     * regenerates a new code instead of silently producing a duplicate.
+     *
+     * @throws DuplicateGiftCardCodeException When the code collides with an
+     *         existing row (the UNIQUE index rejects the insert).
+     */
     public function issue(string $code, float $balance, string $recipientEmail, int $orderId): int
     {
         global $wpdb;
 
-        $wpdb->insert(
+        // Clear any prior error so we only inspect this insert's outcome.
+        $wpdb->last_error = '';
+
+        $result = $wpdb->insert(
             $this->table(),
             [
                 'code'            => $code,
@@ -46,7 +62,34 @@ final class GiftCardTableRepository implements GiftCardRepository
             ['%s', '%f', '%s', '%d', '%s'],
         );
 
+        if (false === $result) {
+            if ($this->isDuplicateKeyError((string) $wpdb->last_error)) {
+                throw new DuplicateGiftCardCodeException(
+                    'Gift card code collided with an existing row.'
+                );
+            }
+
+            return 0;
+        }
+
         return (int) $wpdb->insert_id;
+    }
+
+    /**
+     * Whether a `$wpdb` error string is a UNIQUE/PRIMARY duplicate-key failure.
+     *
+     * MySQL/MariaDB report this as error 1062 with a "Duplicate entry" message;
+     * match on both so the detection is resilient to localised messages and to
+     * drivers that surface only the numeric code.
+     */
+    private function isDuplicateKeyError(string $error): bool
+    {
+        if ($error === '') {
+            return false;
+        }
+
+        return str_contains($error, '1062')
+            || stripos($error, 'Duplicate entry') !== false;
     }
 
     /**
@@ -88,5 +131,57 @@ final class GiftCardTableRepository implements GiftCardRepository
             ['%f'],
             ['%d'],
         );
+    }
+
+    /**
+     * Hard ceiling on rows returned for a single order's gift-card display, so a
+     * malformed or abusive order (e.g. an enormous line quantity) can never make
+     * the order-confirmation page or email render an unbounded table.
+     */
+    private const MAX_ORDER_CARDS = 200;
+
+    /**
+     * Codes (with their current balance) issued by a given order, oldest first.
+     *
+     * Used by the order-confirmation display so a buyer who purchased a gift
+     * card sees the issued code(s) on the thank-you page and in order emails,
+     * without waiting for the recipient email. Reads only the rows belonging to
+     * that order; it never exposes other orders' cards. Bounded by
+     * {@see self::MAX_ORDER_CARDS} to keep the query and the rendered table from
+     * ever growing without limit.
+     *
+     * @return list<array{code: string, balance: float}>
+     */
+    public function findByOrderId(int $orderId): array
+    {
+        global $wpdb;
+
+        $rows = $wpdb->get_results(
+            $wpdb->prepare(
+                'SELECT code, balance FROM %i WHERE order_id = %d ORDER BY id ASC LIMIT %d',
+                $this->table(),
+                $orderId,
+                self::MAX_ORDER_CARDS,
+            ),
+        );
+
+        if (! is_array($rows)) {
+            return [];
+        }
+
+        $cards = [];
+
+        foreach ($rows as $row) {
+            if (! is_object($row)) {
+                continue;
+            }
+
+            $cards[] = [
+                'code'    => (string) $row->code,
+                'balance' => (float) $row->balance,
+            ];
+        }
+
+        return $cards;
     }
 }

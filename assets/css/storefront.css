@@ -1,0 +1,253 @@
+/**
+ * Gift Cards — storefront UI (checkout redeem field + issued-codes table).
+ *
+ * CWV-native: fixed control sizing reserves space so applying a code or
+ * revealing a message causes no layout shift. Themeable via custom properties;
+ * respects prefers-color-scheme and prefers-reduced-motion. Inherits the active
+ * theme's typography (no font imports).
+ */
+
+.giftcards-redeem,
+.giftcards-order-codes {
+	--gcs-accent: #6d3bf5;
+	--gcs-accent-strong: #5326d9;
+	--gcs-accent-soft: #f1ecfe;
+	--gcs-surface: #ffffff;
+	--gcs-surface-muted: #f6f7f9;
+	--gcs-border: #d8dbe0;
+	--gcs-text: inherit;
+	--gcs-text-muted: #646970;
+	--gcs-success: #1a7f50;
+	--gcs-danger: #b32d2e;
+	--gcs-radius: 10px;
+	--gcs-radius-sm: 6px;
+}
+
+/* ---- Redeem field ---------------------------------------------------- */
+
+.giftcards-redeem {
+	margin-block: 1rem;
+	padding: clamp(0.85rem, 0.6rem + 1vw, 1.2rem);
+	background: var(--gcs-surface);
+	border: 1px solid var(--gcs-border);
+	border-radius: var(--gcs-radius);
+}
+
+.giftcards-redeem__head {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	margin-bottom: 0.6rem;
+}
+
+.giftcards-redeem__title {
+	margin: 0;
+	font-size: 0.95rem;
+	font-weight: 600;
+}
+
+.giftcards-redeem__hint {
+	margin: 0 0 0.75rem;
+	font-size: 0.85rem;
+	color: var(--gcs-text-muted);
+}
+
+.giftcards-redeem__row {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.5rem;
+	align-items: stretch;
+	margin: 0;
+}
+
+.giftcards-redeem__label {
+	flex-basis: 100%;
+	margin-bottom: 0.2rem;
+	font-weight: 600;
+	font-size: 0.85rem;
+}
+
+.giftcards-redeem__input {
+	flex: 1 1 12rem;
+	min-inline-size: 0;
+	padding: 0.6rem 0.7rem;
+	font: inherit;
+	letter-spacing: 0.05em;
+	text-transform: uppercase;
+	color: var(--gcs-text);
+	background: var(--gcs-surface);
+	border: 1px solid var(--gcs-border);
+	border-radius: var(--gcs-radius-sm);
+}
+
+.giftcards-redeem__input::placeholder {
+	text-transform: none;
+	letter-spacing: normal;
+	color: var(--gcs-text-muted);
+}
+
+.giftcards-redeem__input:focus-visible {
+	outline: 2px solid var(--gcs-accent);
+	outline-offset: 1px;
+	border-color: var(--gcs-accent);
+}
+
+.giftcards-redeem__apply {
+	flex: 0 0 auto;
+	padding-inline: 1.1rem;
+	font: inherit;
+	font-weight: 600;
+	color: #fff;
+	background: var(--gcs-accent);
+	border: 1px solid var(--gcs-accent);
+	border-radius: var(--gcs-radius-sm);
+	cursor: pointer;
+	transition: background-color 0.15s ease, transform 0.1s ease;
+}
+
+.giftcards-redeem__apply:hover {
+	background: var(--gcs-accent-strong);
+}
+
+.giftcards-redeem__apply:active {
+	transform: translateY(1px);
+}
+
+.giftcards-redeem__apply:focus-visible {
+	outline: 2px solid var(--gcs-accent-strong);
+	outline-offset: 2px;
+}
+
+/*
+ * Feedback line. Height is reserved (min-block-size) so showing a message after
+ * applying a code does NOT push the payment section down (no CLS).
+ */
+.giftcards-redeem__feedback {
+	display: flex;
+	align-items: center;
+	gap: 0.4rem;
+	min-block-size: 1.4em;
+	margin-top: 0.5rem;
+	font-size: 0.85rem;
+	color: var(--gcs-text-muted);
+}
+
+.giftcards-redeem__feedback--applied {
+	color: var(--gcs-success);
+	font-weight: 600;
+}
+
+.giftcards-redeem__feedback--error {
+	color: var(--gcs-danger);
+	font-weight: 600;
+}
+
+/* ---- Issued-codes section (order page + emails) ---------------------- */
+
+.giftcards-order-codes {
+	margin-block: 1.5rem;
+}
+
+.giftcards-order-codes__title {
+	display: flex;
+	align-items: center;
+	gap: 0.45rem;
+	margin-bottom: 0.4rem;
+	font-size: 1.05rem;
+}
+
+.giftcards-order-codes__intro {
+	margin: 0 0 0.75rem;
+	color: var(--gcs-text-muted);
+}
+
+.giftcards-order-codes__table {
+	inline-size: 100%;
+	border-collapse: collapse;
+}
+
+.giftcards-order-codes__table th,
+.giftcards-order-codes__table td {
+	padding: 0.6rem 0.75rem;
+	text-align: start;
+	border-bottom: 1px solid var(--gcs-border);
+}
+
+.giftcards-order-codes__code {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.5rem;
+}
+
+.giftcards-order-codes__code code {
+	padding: 0.2rem 0.5rem;
+	font-size: 0.95em;
+	letter-spacing: 0.05em;
+	background: var(--gcs-surface-muted);
+	border-radius: var(--gcs-radius-sm);
+}
+
+.giftcards-copy {
+	all: unset;
+	display: inline-grid;
+	place-items: center;
+	inline-size: 28px;
+	block-size: 28px;
+	border-radius: var(--gcs-radius-sm);
+	color: var(--gcs-accent-strong);
+	background: var(--gcs-accent-soft);
+	cursor: pointer;
+	transition: background-color 0.15s ease, transform 0.1s ease;
+}
+
+.giftcards-copy:hover {
+	background: color-mix(in srgb, var(--gcs-accent) 22%, #fff);
+}
+
+.giftcards-copy:active {
+	transform: scale(0.92);
+}
+
+.giftcards-copy:focus-visible {
+	outline: 2px solid var(--gcs-accent-strong);
+	outline-offset: 2px;
+}
+
+.giftcards-copy[data-copied="true"] {
+	color: var(--gcs-success);
+}
+
+/* ---- Empty state ----------------------------------------------------- */
+
+.giftcards-empty {
+	padding: 1.25rem;
+	text-align: center;
+	color: var(--gcs-text-muted);
+	background: var(--gcs-surface-muted);
+	border: 1px dashed var(--gcs-border);
+	border-radius: var(--gcs-radius);
+}
+
+/* ---- Dark mode ------------------------------------------------------- */
+
+@media (prefers-color-scheme: dark) {
+	.giftcards-redeem,
+	.giftcards-order-codes {
+		--gcs-accent-soft: #2a2150;
+		--gcs-surface: #1b1d22;
+		--gcs-surface-muted: #24272e;
+		--gcs-border: #3a3f47;
+		--gcs-text-muted: #a7acb3;
+		--gcs-success: #4cc38a;
+		--gcs-danger: #f0918f;
+	}
+}
+
+/* ---- Motion ---------------------------------------------------------- */
+
+@media (prefers-reduced-motion: reduce) {
+	.giftcards-redeem *,
+	.giftcards-order-codes * {
+		transition: none !important;
+	}
+}

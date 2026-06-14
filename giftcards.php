@@ -3,7 +3,7 @@
  * Plugin Name:       Gift Cards – Store Credit for WooCommerce
  * Plugin URI:        https://plogins.com/giftcards/
  * Description:        Sell gift cards that email a redeemable code to the recipient and apply as a discount at checkout.
- * Version:           0.1.0
+ * Version:           0.2.0
  * Requires at least: 6.5
  * Requires PHP:      8.1
  * Requires Plugins:  woocommerce
@@ -24,7 +24,7 @@ namespace GiftCards;
 
 defined('ABSPATH') || exit;
 
-const VERSION     = '0.1.0';
+const VERSION     = '0.2.0';
 const PLUGIN_FILE = __FILE__;
 
 define('GIFTCARDS_DIR', plugin_dir_path(__FILE__));
@@ -50,9 +50,10 @@ add_action('plugins_loaded', static function (): void {
         return;
     }
 
-    Plugin::instance()->boot();
-    do_action('giftcards/booted', Plugin::instance());
-});
+    add_action('init', static function (): void {
+        Plugin::instance()->boot();
+    }, 0);
+}, 10);
 
 // Create the gift-cards table on activation. Services are registered in the
 // Plugin constructor, so the container is ready here — before boot() runs.

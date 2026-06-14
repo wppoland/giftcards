@@ -36,8 +36,12 @@ final class GiftCardService implements HasHooks
 
     private ?GiftCardEngine $engine = null;
 
+    private readonly GiftCardTableRepository $repository;
+
     public function __construct()
     {
+        $this->repository = new GiftCardTableRepository();
+
         // The engine ships with storefront-kit >= 1.5.0. When present, wire it
         // with this plugin's text-domain / option storage / asset paths.
         // Otherwise leave the service inert (see registerHooks()).
@@ -45,16 +49,22 @@ final class GiftCardService implements HasHooks
             return;
         }
 
+        // Resolve the merchant-configured discount label / email templates once
+        // (these are stored options, available by plugins_loaded). The MVP
+        // hard-coded them here, so the admin email-content settings had no
+        // effect; passing them through makes those settings live.
+        $settings = $this->settings();
+
         $this->engine = new GiftCardEngine(
-            repository: new GiftCardTableRepository(),
+            repository: $this->repository,
             sessionKey: self::SESSION_KEY,
             fieldName: 'giftcards_redeem_code',
             nonceAction: 'giftcards_redeem',
             fieldTemplate: 'checkout-redeem-field',
             labels: [
-                'fee_label'     => __('Gift card ({code})', 'giftcards'),
-                'email_subject' => __('You have received a {amount} gift card', 'giftcards'),
-                'email_body'    => __("You have received a gift card worth {amount}.\n\nUse this code at checkout: {code}", 'giftcards'),
+                'fee_label'     => $this->label($settings, 'fee_label', __('Gift card ({code})', 'giftcards')),
+                'email_subject' => $this->label($settings, 'email_subject', __('You have received a {amount} gift card', 'giftcards')),
+                'email_body'    => $this->label($settings, 'email_body', __("You have received a gift card worth {amount}.\n\nUse this code at checkout: {code}", 'giftcards')),
                 'invalid_code'  => __('That gift card code is not valid.', 'giftcards'),
                 'applied'       => __('Gift card applied.', 'giftcards'),
             ],
@@ -78,6 +88,134 @@ final class GiftCardService implements HasHooks
         }
 
         $this->engine->registerHooks();
+
+        // Storefront styles + progressive-enhancement script (copy buttons,
+        // cosmetic uppercasing). Enqueued as real files; only on checkout and
+        // the order/account pages where our markup actually appears.
+        add_action('wp_enqueue_scripts', [$this, 'enqueueAssets']);
+
+        // Show the buyer the code(s) their order issued, on the order-received /
+        // account order page and in customer order emails. Reads only the rows
+        // belonging to that order (not a public balance lookup).
+        if ($this->showCodesOnOrder()) {
+            add_action('woocommerce_order_details_after_order_table', [$this, 'renderOrderCodes'], 10, 1);
+            add_action('woocommerce_email_after_order_table', [$this, 'renderOrderCodesEmail'], 10, 4);
+        }
+    }
+
+    /**
+     * Enqueue the storefront stylesheet and enhancement script, only where the
+     * gift-card UI is shown (checkout, order-received, account order views).
+     * Both are real files (Plugin-Check clean); the script is deferred + footer.
+     */
+    public function enqueueAssets(): void
+    {
+        if (! $this->isEnabled()) {
+            return;
+        }
+
+        // Load only where our markup actually appears: the checkout (redeem
+        // field) and the single-order views that list issued codes
+        // (order-received + the account "view order" endpoint). Other account
+        // sub-pages (dashboard, addresses, downloads) render no gift-card
+        // markup, so enqueuing there would be wasted bytes.
+        if (! function_exists('is_checkout')
+            || ! (is_checkout() || is_order_received_page() || is_wc_endpoint_url('view-order'))
+        ) {
+            return;
+        }
+
+        wp_enqueue_style(
+            'giftcards-storefront',
+            GIFTCARDS_URL . 'assets/css/storefront.css',
+            [],
+            \GiftCards\VERSION,
+        );
+
+        wp_enqueue_script(
+            'giftcards-storefront',
+            GIFTCARDS_URL . 'assets/js/storefront.js',
+            [],
+            \GiftCards\VERSION,
+            ['in_footer' => true, 'strategy' => 'defer'],
+        );
+    }
+
+    /**
+     * Render the gift-card codes issued by an order on the front-end order page.
+     *
+     * @param bool $plain When true (emails), omit the interactive copy button so
+     *                    nothing relies on JS / unsupported markup in an inbox.
+     */
+    public function renderOrderCodes(\WC_Order $order, bool $plain = false): void
+    {
+        $cards = $this->repository->findByOrderId($order->get_id());
+
+        if ($cards === []) {
+            // An order that issued no cards (e.g. all lines were ordinary
+            // products) shows nothing here — handled by the caller's gate; this
+            // guard simply keeps the section from rendering an empty shell.
+            return;
+        }
+
+        echo '<section class="giftcards-order-codes">';
+        echo '<h2 class="giftcards-order-codes__title">';
+        echo '<span aria-hidden="true">&#127873;</span> ';
+        echo esc_html__('Your gift cards', 'giftcards');
+        echo '</h2>';
+        echo '<p class="giftcards-order-codes__intro">'
+            . esc_html__('Keep these codes safe. Enter a code at checkout to spend its balance; any unused amount stays on the card.', 'giftcards')
+            . '</p>';
+        echo '<table class="woocommerce-table giftcards-order-codes__table"><thead><tr>';
+        echo '<th scope="col">' . esc_html__('Code', 'giftcards') . '</th>';
+        echo '<th scope="col">' . esc_html__('Balance', 'giftcards') . '</th>';
+        echo '</tr></thead><tbody>';
+
+        $copyLabel = __('Copy code', 'giftcards');
+
+        foreach ($cards as $card) {
+            $code    = (string) $card['code'];
+            $balance = (float) $card['balance'];
+
+            echo '<tr><td><span class="giftcards-order-codes__code">';
+            echo '<code>' . esc_html($code) . '</code>';
+
+            if (! $plain) {
+                printf(
+                    '<button type="button" class="giftcards-copy" data-code="%1$s" data-copied-label="%2$s" data-error-label="%3$s" aria-label="%4$s" title="%4$s"><span aria-hidden="true">&#128203;</span></button>',
+                    esc_attr($code),
+                    esc_attr__('Copied', 'giftcards'),
+                    esc_attr__('Copy failed — select and copy manually', 'giftcards'),
+                    esc_attr(sprintf('%s: %s', $copyLabel, $code)),
+                );
+            }
+
+            echo '</span></td>';
+            echo '<td>' . wp_kses_post(wc_price($balance)) . '</td></tr>';
+        }
+
+        echo '</tbody></table></section>';
+    }
+
+    /**
+     * Render issued codes inside customer order emails (sent_to_admin = false).
+     *
+     * @param bool $sentToAdmin Whether the email is the admin copy.
+     */
+    public function renderOrderCodesEmail(
+        \WC_Order $order,
+        bool $sentToAdmin = false,
+        bool $plainText = false,
+        ?\WC_Email $email = null
+    ): void {
+        unset($plainText, $email);
+
+        if ($sentToAdmin) {
+            return;
+        }
+
+        // Emails: render the copy-button-free variant (no JS in inboxes).
+        $this->renderOrderCodes($order, true);
     }
 
     /**
@@ -128,6 +266,24 @@ final class GiftCardService implements HasHooks
     private function isEnabled(): bool
     {
         return (bool) ($this->settings()['enabled'] ?? false);
+    }
+
+    private function showCodesOnOrder(): bool
+    {
+        return (bool) ($this->settings()['show_codes_on_order'] ?? true);
+    }
+
+    /**
+     * Resolve a configurable label from settings, falling back to the packaged
+     * default when the stored value is blank.
+     *
+     * @param array<string, mixed> $settings
+     */
+    private function label(array $settings, string $key, string $fallback): string
+    {
+        $value = isset($settings[$key]) ? (string) $settings[$key] : '';
+
+        return $value !== '' ? $value : $fallback;
     }
 
     /**

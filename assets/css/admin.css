@@ -1,0 +1,329 @@
+/**
+ * Gift Cards — admin settings UI.
+ *
+ * Scoped to .giftcards-admin so nothing leaks into core wp-admin. Themeable via
+ * custom properties; respects prefers-color-scheme and prefers-reduced-motion.
+ */
+
+.giftcards-admin {
+	--gc-accent: #6d3bf5;
+	--gc-accent-strong: #5326d9;
+	--gc-accent-soft: #f1ecfe;
+	--gc-surface: #ffffff;
+	--gc-surface-muted: #f6f7f9;
+	--gc-border: #dcdfe5;
+	--gc-text: #1d2327;
+	--gc-text-muted: #646970;
+	--gc-success: #1a7f50;
+	--gc-radius: 10px;
+	--gc-radius-sm: 6px;
+	--gc-gap: clamp(0.75rem, 0.4rem + 1vw, 1.25rem);
+	--gc-shadow: 0 1px 2px rgba(16, 24, 40, 0.06), 0 1px 3px rgba(16, 24, 40, 0.1);
+
+	max-inline-size: 880px;
+	color: var(--gc-text);
+}
+
+/* ---- Intro / hero ---------------------------------------------------- */
+
+.giftcards-admin__intro {
+	display: flex;
+	gap: var(--gc-gap);
+	align-items: flex-start;
+	padding: clamp(1rem, 0.6rem + 1.4vw, 1.4rem);
+	margin-block: 1rem;
+	background: linear-gradient(135deg, var(--gc-accent-soft), var(--gc-surface));
+	border: 1px solid var(--gc-border);
+	border-radius: var(--gc-radius);
+	box-shadow: var(--gc-shadow);
+}
+
+.giftcards-admin__intro-icon {
+	flex: 0 0 auto;
+	display: grid;
+	place-items: center;
+	inline-size: 44px;
+	block-size: 44px;
+	border-radius: var(--gc-radius-sm);
+	background: var(--gc-accent);
+	color: #fff;
+	font-size: 22px;
+	line-height: 1;
+}
+
+.giftcards-admin__intro h2 {
+	margin: 0 0 0.25rem;
+	font-size: 1.05rem;
+}
+
+.giftcards-admin__intro p {
+	margin: 0;
+	color: var(--gc-text-muted);
+	max-inline-size: 60ch;
+}
+
+/* ---- Status pill ----------------------------------------------------- */
+
+.giftcards-admin__status {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.4rem;
+	margin-inline-start: 0.5rem;
+	padding: 0.15rem 0.6rem;
+	border-radius: 999px;
+	font-size: 0.78rem;
+	font-weight: 600;
+	vertical-align: middle;
+}
+
+.giftcards-admin__status::before {
+	content: "";
+	inline-size: 8px;
+	block-size: 8px;
+	border-radius: 50%;
+	background: currentColor;
+}
+
+.giftcards-admin__status--on {
+	background: #e6f4ec;
+	color: var(--gc-success);
+}
+
+.giftcards-admin__status--off {
+	background: #f2f3f5;
+	color: var(--gc-text-muted);
+}
+
+/* ---- Cards / sections ------------------------------------------------ */
+
+.giftcards-admin__card {
+	margin-block: 1.25rem;
+	padding: clamp(1rem, 0.6rem + 1.4vw, 1.5rem);
+	background: var(--gc-surface);
+	border: 1px solid var(--gc-border);
+	border-radius: var(--gc-radius);
+	box-shadow: var(--gc-shadow);
+}
+
+.giftcards-admin__card > h2 {
+	margin-block: 0 0.25rem;
+	font-size: 1rem;
+}
+
+.giftcards-admin__card-hint {
+	margin-block: 0 1rem;
+	color: var(--gc-text-muted);
+}
+
+/* The settings table inside a card: roomier rows, no native top borders. */
+
+.giftcards-admin .form-table {
+	margin-top: 0;
+}
+
+.giftcards-admin .form-table th {
+	padding-block: 1.1rem;
+	inline-size: 220px;
+}
+
+.giftcards-admin .form-table td {
+	padding-block: 1.1rem;
+}
+
+.giftcards-admin .form-table input[type="text"]:focus,
+.giftcards-admin .form-table .large-text:focus,
+.giftcards-admin .form-table textarea:focus {
+	border-color: var(--gc-accent);
+	box-shadow: 0 0 0 1px var(--gc-accent);
+	outline: 2px solid transparent;
+}
+
+/* ---- Label + help affordance ----------------------------------------- */
+
+.giftcards-admin__label {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.4rem;
+}
+
+.giftcards-help {
+	all: unset;
+	display: inline-grid;
+	place-items: center;
+	inline-size: 18px;
+	block-size: 18px;
+	border-radius: 50%;
+	background: var(--gc-surface-muted);
+	border: 1px solid var(--gc-border);
+	color: var(--gc-text-muted);
+	font-size: 11px;
+	font-weight: 700;
+	cursor: help;
+	transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.giftcards-help:hover,
+.giftcards-help:focus-visible {
+	background: var(--gc-accent);
+	border-color: var(--gc-accent);
+	color: #fff;
+}
+
+.giftcards-help:focus-visible {
+	outline: 2px solid var(--gc-accent-strong);
+	outline-offset: 2px;
+}
+
+/* Popover-based tooltip (native Popover API; aria-describedby wired in JS). */
+
+.giftcards-tooltip {
+	max-inline-size: 280px;
+	margin: 0;
+	padding: 0.6rem 0.75rem;
+	font-size: 0.82rem;
+	line-height: 1.45;
+	color: #fff;
+	background: #1d2327;
+	border: 0;
+	border-radius: var(--gc-radius-sm);
+	box-shadow: 0 6px 24px rgba(16, 24, 40, 0.22);
+}
+
+.giftcards-tooltip::backdrop {
+	background: transparent;
+}
+
+/* No-JS / unsupported fallback: render help text inline via <span> details. */
+
+.giftcards-help-fallback {
+	display: block;
+	margin-top: 0.35rem;
+	color: var(--gc-text-muted);
+	font-style: italic;
+}
+
+/* ---- Token chips (template placeholders) ----------------------------- */
+
+.giftcards-tokens {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.4rem;
+	margin-top: 0.5rem;
+}
+
+.giftcards-token {
+	all: unset;
+	display: inline-flex;
+	align-items: center;
+	gap: 0.3rem;
+	padding: 0.2rem 0.55rem;
+	font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+	font-size: 0.78rem;
+	color: var(--gc-accent-strong);
+	background: var(--gc-accent-soft);
+	border: 1px solid color-mix(in srgb, var(--gc-accent) 28%, transparent);
+	border-radius: 999px;
+	cursor: pointer;
+	transition: transform 0.12s ease, background-color 0.12s ease;
+}
+
+.giftcards-token:hover {
+	background: color-mix(in srgb, var(--gc-accent) 18%, #fff);
+}
+
+.giftcards-token:active {
+	transform: scale(0.96);
+}
+
+.giftcards-token:focus-visible {
+	outline: 2px solid var(--gc-accent-strong);
+	outline-offset: 2px;
+}
+
+.giftcards-token__copied {
+	color: var(--gc-success);
+	font-weight: 600;
+}
+
+/* ---- Live preview ---------------------------------------------------- */
+
+.giftcards-preview {
+	margin-top: 0.75rem;
+	padding: 1rem;
+	background: var(--gc-surface-muted);
+	border: 1px dashed var(--gc-border);
+	border-radius: var(--gc-radius-sm);
+}
+
+.giftcards-preview__label {
+	display: block;
+	margin-bottom: 0.4rem;
+	font-size: 0.72rem;
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+	color: var(--gc-text-muted);
+}
+
+.giftcards-preview__subject {
+	font-weight: 600;
+}
+
+.giftcards-preview__body {
+	margin: 0.4rem 0 0;
+	white-space: pre-wrap;
+	color: var(--gc-text);
+}
+
+.giftcards-preview code {
+	padding: 0.1rem 0.35rem;
+	background: var(--gc-accent-soft);
+	border-radius: 4px;
+}
+
+/* ---- Dark mode ------------------------------------------------------- */
+
+@media (prefers-color-scheme: dark) {
+	.giftcards-admin {
+		--gc-accent-soft: #2a2150;
+		--gc-surface: #1e2127;
+		--gc-surface-muted: #262a31;
+		--gc-border: #3a3f47;
+		--gc-text: #e7e9ec;
+		--gc-text-muted: #a7acb3;
+		--gc-success: #4cc38a;
+		--gc-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+	}
+
+	.giftcards-admin__status--on {
+		background: #143727;
+	}
+
+	.giftcards-admin__status--off {
+		background: #2a2e35;
+	}
+
+	.giftcards-tooltip {
+		background: #0f1115;
+	}
+}
+
+/* ---- Motion ---------------------------------------------------------- */
+
+@media (prefers-reduced-motion: reduce) {
+	.giftcards-admin *,
+	.giftcards-admin *::before {
+		transition: none !important;
+	}
+}
+
+/* ---- Narrow screens -------------------------------------------------- */
+
+@media (max-width: 600px) {
+	.giftcards-admin .form-table th {
+		inline-size: auto;
+	}
+
+	.giftcards-admin__intro {
+		flex-direction: column;
+	}
+}

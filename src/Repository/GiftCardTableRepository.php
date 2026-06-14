@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace GiftCards\Repository;
 
+use WPPoland\StorefrontKit\GiftCard\DuplicateGiftCardCodeException;
 use WPPoland\StorefrontKit\GiftCard\GiftCardRepository;
 
 defined('ABSPATH') || exit;
@@ -30,11 +31,26 @@ final class GiftCardTableRepository implements GiftCardRepository
         return $wpdb->prefix . 'giftcards';
     }
 
+    /**
+     * Persist a freshly issued gift card.
+     *
+     * The DB-level UNIQUE index on `code` (see {@see \GiftCards\Migrator}) is the
+     * authority on uniqueness: if a concurrent issue inserted the same code
+     * between the kit's pre-check and this insert, the insert is rejected and we
+     * translate that into {@see DuplicateGiftCardCodeException} so the kit engine
+     * regenerates a new code instead of silently producing a duplicate.
+     *
+     * @throws DuplicateGiftCardCodeException When the code collides with an
+     *         existing row (the UNIQUE index rejects the insert).
+     */
     public function issue(string $code, float $balance, string $recipientEmail, int $orderId): int
     {
         global $wpdb;
 
-        $wpdb->insert(
+        // Clear any prior error so we only inspect this insert's outcome.
+        $wpdb->last_error = '';
+
+        $result = $wpdb->insert(
             $this->table(),
             [
                 'code'            => $code,
@@ -46,7 +62,34 @@ final class GiftCardTableRepository implements GiftCardRepository
             ['%s', '%f', '%s', '%d', '%s'],
         );
 
+        if (false === $result) {
+            if ($this->isDuplicateKeyError((string) $wpdb->last_error)) {
+                throw new DuplicateGiftCardCodeException(
+                    'Gift card code collided with an existing row.'
+                );
+            }
+
+            return 0;
+        }
+
         return (int) $wpdb->insert_id;
+    }
+
+    /**
+     * Whether a `$wpdb` error string is a UNIQUE/PRIMARY duplicate-key failure.
+     *
+     * MySQL/MariaDB report this as error 1062 with a "Duplicate entry" message;
+     * match on both so the detection is resilient to localised messages and to
+     * drivers that surface only the numeric code.
+     */
+    private function isDuplicateKeyError(string $error): bool
+    {
+        if ($error === '') {
+            return false;
+        }
+
+        return str_contains($error, '1062')
+            || stripos($error, 'Duplicate entry') !== false;
     }
 
     /**

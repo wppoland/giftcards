@@ -89,4 +89,46 @@ final class GiftCardTableRepository implements GiftCardRepository
             ['%d'],
         );
     }
+
+    /**
+     * Codes (with their current balance) issued by a given order, oldest first.
+     *
+     * Used by the order-confirmation display so a buyer who purchased a gift
+     * card sees the issued code(s) on the thank-you page and in order emails,
+     * without waiting for the recipient email. Reads only the rows belonging to
+     * that order; it never exposes other orders' cards.
+     *
+     * @return list<array{code: string, balance: float}>
+     */
+    public function findByOrderId(int $orderId): array
+    {
+        global $wpdb;
+
+        $rows = $wpdb->get_results(
+            $wpdb->prepare(
+                'SELECT code, balance FROM %i WHERE order_id = %d ORDER BY id ASC',
+                $this->table(),
+                $orderId,
+            ),
+        );
+
+        if (! is_array($rows)) {
+            return [];
+        }
+
+        $cards = [];
+
+        foreach ($rows as $row) {
+            if (! is_object($row)) {
+                continue;
+            }
+
+            $cards[] = [
+                'code'    => (string) $row->code,
+                'balance' => (float) $row->balance,
+            ];
+        }
+
+        return $cards;
+    }
 }

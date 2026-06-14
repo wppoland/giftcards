@@ -49,5 +49,12 @@ final class Plugin
                 $service->registerHooks();
             }
         }
+
+        /**
+         * Fires after GiftCards has fully booted. PRO companions hook here.
+         *
+         * @param Plugin $plugin The booted plugin instance.
+         */
+        do_action('giftcards/booted', $this);
     }
 }

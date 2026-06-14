@@ -105,6 +105,36 @@ final class Settings implements HasHooks
                                 <p class="description"><?php esc_html_e('Optional. Prepended to every generated code (e.g. "GIFT-").', 'giftcards'); ?></p>
                             </td>
                         </tr>
+                        <tr>
+                            <th scope="row">
+                                <label for="giftcards_fee_label"><?php esc_html_e('Checkout discount label', 'giftcards'); ?></label>
+                            </th>
+                            <td>
+                                <input
+                                    type="text"
+                                    id="giftcards_fee_label"
+                                    name="<?php echo esc_attr(self::OPTION); ?>[fee_label]"
+                                    value="<?php echo esc_attr((string) ($settings['fee_label'] ?? '')); ?>"
+                                    class="regular-text"
+                                />
+                                <p class="description"><?php esc_html_e('Label of the discount line shown at checkout when a code is applied. Use {code} for the applied code.', 'giftcards'); ?></p>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th scope="row"><?php esc_html_e('Show codes on order', 'giftcards'); ?></th>
+                            <td>
+                                <label for="giftcards_show_codes_on_order">
+                                    <input
+                                        type="checkbox"
+                                        id="giftcards_show_codes_on_order"
+                                        name="<?php echo esc_attr(self::OPTION); ?>[show_codes_on_order]"
+                                        value="1"
+                                        <?php checked((bool) ($settings['show_codes_on_order'] ?? true), true); ?>
+                                    />
+                                    <?php esc_html_e('List the issued gift-card codes on the buyer\'s order-confirmation page and in their order emails.', 'giftcards'); ?>
+                                </label>
+                            </td>
+                        </tr>
                     </tbody>
                 </table>
 
@@ -169,15 +199,18 @@ final class Settings implements HasHooks
 
         $defaults = $this->settings();
 
-        $prefix  = isset($raw['code_prefix']) ? sanitize_text_field((string) $raw['code_prefix']) : '';
-        $subject = isset($raw['email_subject']) ? sanitize_text_field((string) $raw['email_subject']) : '';
-        $body    = isset($raw['email_body']) ? sanitize_textarea_field((string) $raw['email_body']) : '';
+        $prefix   = isset($raw['code_prefix']) ? sanitize_text_field((string) $raw['code_prefix']) : '';
+        $feeLabel = isset($raw['fee_label']) ? sanitize_text_field((string) $raw['fee_label']) : '';
+        $subject  = isset($raw['email_subject']) ? sanitize_text_field((string) $raw['email_subject']) : '';
+        $body     = isset($raw['email_body']) ? sanitize_textarea_field((string) $raw['email_body']) : '';
 
         return array_merge($defaults, [
-            'enabled'       => ! empty($raw['enabled']),
-            'code_prefix'   => $prefix,
-            'email_subject' => $subject !== '' ? $subject : (string) ($defaults['email_subject'] ?? ''),
-            'email_body'    => $body !== '' ? $body : (string) ($defaults['email_body'] ?? ''),
+            'enabled'             => ! empty($raw['enabled']),
+            'code_prefix'         => $prefix,
+            'fee_label'           => $feeLabel !== '' ? $feeLabel : (string) ($defaults['fee_label'] ?? ''),
+            'show_codes_on_order' => ! empty($raw['show_codes_on_order']),
+            'email_subject'       => $subject !== '' ? $subject : (string) ($defaults['email_subject'] ?? ''),
+            'email_body'          => $body !== '' ? $body : (string) ($defaults['email_body'] ?? ''),
         ]);
     }
 

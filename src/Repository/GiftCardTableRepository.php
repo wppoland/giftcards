@@ -91,12 +91,21 @@ final class GiftCardTableRepository implements GiftCardRepository
     }
 
     /**
+     * Hard ceiling on rows returned for a single order's gift-card display, so a
+     * malformed or abusive order (e.g. an enormous line quantity) can never make
+     * the order-confirmation page or email render an unbounded table.
+     */
+    private const MAX_ORDER_CARDS = 200;
+
+    /**
      * Codes (with their current balance) issued by a given order, oldest first.
      *
      * Used by the order-confirmation display so a buyer who purchased a gift
      * card sees the issued code(s) on the thank-you page and in order emails,
      * without waiting for the recipient email. Reads only the rows belonging to
-     * that order; it never exposes other orders' cards.
+     * that order; it never exposes other orders' cards. Bounded by
+     * {@see self::MAX_ORDER_CARDS} to keep the query and the rendered table from
+     * ever growing without limit.
      *
      * @return list<array{code: string, balance: float}>
      */
@@ -106,9 +115,10 @@ final class GiftCardTableRepository implements GiftCardRepository
 
         $rows = $wpdb->get_results(
             $wpdb->prepare(
-                'SELECT code, balance FROM %i WHERE order_id = %d ORDER BY id ASC',
+                'SELECT code, balance FROM %i WHERE order_id = %d ORDER BY id ASC LIMIT %d',
                 $this->table(),
                 $orderId,
+                self::MAX_ORDER_CARDS,
             ),
         );
 

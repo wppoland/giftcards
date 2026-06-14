@@ -114,8 +114,13 @@ final class GiftCardService implements HasHooks
             return;
         }
 
+        // Load only where our markup actually appears: the checkout (redeem
+        // field) and the single-order views that list issued codes
+        // (order-received + the account "view order" endpoint). Other account
+        // sub-pages (dashboard, addresses, downloads) render no gift-card
+        // markup, so enqueuing there would be wasted bytes.
         if (! function_exists('is_checkout')
-            || ! (is_checkout() || is_order_received_page() || is_account_page() || is_wc_endpoint_url('view-order'))
+            || ! (is_checkout() || is_order_received_page() || is_wc_endpoint_url('view-order'))
         ) {
             return;
         }
